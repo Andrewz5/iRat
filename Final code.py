@@ -8,8 +8,10 @@ import pandas as pd
 import OneDollor_Recognizer_rat
 from csv import DictWriter
 from Rat_Detection import RatDetection
-from TrajectoryClasification import TrajectoryClasification
+from TrajectoryClasification import TrajectoryClasification,TrajectoryClasificationStrategy,oneDollorRecognize,DTWMethod,FastDTWMethod
 from videoProcessing import VideoProcessing
+
+
 
 quarterFrame=0.0
 
@@ -39,10 +41,6 @@ cap.set(cv2.CAP_PROP_BUFFERSIZE, 3)
 
 backSub = cv2.createBackgroundSubtractorKNN()
 
-
-
-
-
 #get the point of each square 
 with open('polygons4', 'rb') as f:
     polygonsWithScore = pickle.load(f)
@@ -56,11 +54,9 @@ pointtoQuater=''
 frameCounter=0
 ratDetectionMethods=RatDetection()
 frameEdit=VideoProcessing()
-trajectoryClassifiction=TrajectoryClasification()
+trajectoryClassifiction=TrajectoryClasification(FastDTWMethod())
 while(1):
-
 	frameCounter+=1
-    
 	if frameCounter== cap.get(cv2.CAP_PROP_FRAME_COUNT):
 		break
 	ret,frame=cap.read()
@@ -84,12 +80,12 @@ while(1):
 					box = cv2.boxPoints(rect)
 					box = np.int0(box)
 					center=trajectoryClassifiction.determineTheCenter(frame,cnts)
-					print(trajectoryClassifiction.getPoints())
+					# print(trajectoryClassifiction.getPoints())
 					for cr in pointsList:
 						cv2.circle(frame, cr, 5, (0, 0, 255), -1)
 						
 					if(trajectoryClassifiction.numberOfPoints()==70):
-						Shape,conf=OneDollor_Recognizer_rat.recognize(trajectoryClassifiction.getPoints())
+						Shape,conf=trajectoryClassifiction.trajectoryType()
 						pointsList=[]
 						trajectoryClassifiction.restPoints()
 						if (Shape!=None):
@@ -130,11 +126,10 @@ while(1):
 								# stoptime()
 								pointtoQuater='1'
 								timeFlag=0
-		
 		cv2.putText(frame, 'Number of entries %i'%(ratDetectionMethods.getCountNumberofEnter()),(50,400), cv2.FONT_HERSHEY_DUPLEX, 0.5,(0,0,255),2)
 		cv2.putText(frame, 'Time inside target quadrant %.2f sec'%((quarterFrame/60)),(50,420), cv2.FONT_HERSHEY_DUPLEX, 0.5,(0,0,255),2)
 		cv2.putText(frame, 'Time till reaching target quadrant  %.2f sec'%((latancyframe/60)),(50,440), cv2.FONT_HERSHEY_DUPLEX, 0.5,(0,0,255),2)
-		
+	
 		#show image
 		cv2.imshow('frame',frame)
 		cv2.imshow('frame_c',frame_c)
