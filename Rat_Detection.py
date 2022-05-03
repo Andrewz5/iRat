@@ -19,6 +19,7 @@ class RatDetection:
 	
 	def getCountNumberofEnter(self):
 		return self.countNumberofEnter
+		
 
 	def setframe(self,frame):
 		self.img=frame	

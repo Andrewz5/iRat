@@ -8,11 +8,13 @@ import pandas as pd
 import OneDollor_Recognizer_rat
 from csv import DictWriter
 from Rat_Detection import RatDetection
+from TrajectoryClasification import TrajectoryClasification
 from videoProcessing import VideoProcessing
 
 quarterFrame=0.0
 
-videoNumber=2
+
+videoNumber=1
 trajectoryType=[]
 confidence=[]
 stop=0
@@ -54,6 +56,7 @@ pointtoQuater=''
 frameCounter=0
 ratDetectionMethods=RatDetection()
 frameEdit=VideoProcessing()
+trajectoryClassifiction=TrajectoryClasification()
 while(1):
 
 	frameCounter+=1
@@ -80,18 +83,15 @@ while(1):
 					rect = cv2.minAreaRect(c)
 					box = cv2.boxPoints(rect)
 					box = np.int0(box)
-					c = max(cnts, key=cv2.contourArea)
-					((x, y), radius) = cv2.minEnclosingCircle(c)
-					M = cv2.moments(c)
-					center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
-					cv2.circle(frame, center, 2, (0, 0, 255), -1)
-					x,y=center
-					pointsList.append(center)
-					# for cr in pointsList:
-					# 	cv2.circle(frame, cr, 5, (0, 0, 255), -1)
-					if(len(pointsList)==70):
-						Shape,conf=OneDollor_Recognizer_rat.recognize(pointsList)
+					center=trajectoryClassifiction.determineTheCenter(frame,cnts)
+					print(trajectoryClassifiction.getPoints())
+					for cr in pointsList:
+						cv2.circle(frame, cr, 5, (0, 0, 255), -1)
+						
+					if(trajectoryClassifiction.numberOfPoints()==70):
+						Shape,conf=OneDollor_Recognizer_rat.recognize(trajectoryClassifiction.getPoints())
 						pointsList=[]
+						trajectoryClassifiction.restPoints()
 						if (Shape!=None):
 							trajectoryType.append(Shape)
 							confidence.append(conf)
