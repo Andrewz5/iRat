@@ -5,16 +5,15 @@ import numpy as np
 import imutils
 import pickle
 import pandas as pd 
-import OneDollor_Recognizer_rat
 from csv import DictWriter
 from Rat_Detection import RatDetection
 from TrajectoryClasification import TrajectoryClasification,TrajectoryClasificationStrategy,oneDollorRecognize,DTWMethod,FastDTWMethod
 from videoProcessing import VideoProcessing
+from SaveDataToFile import SaveDataToFile
+import os
 
-
-
+# def startTracking():
 quarterFrame=0.0
-
 
 videoNumber=1
 trajectoryType=[]
@@ -31,19 +30,15 @@ pointsList=[]
 timeFlag=0
 programsec=0
 
-
-
-
-cap=cv2.VideoCapture('%i.mp4'%(videoNumber))
+cap=cv2.VideoCapture('C1.mp4')#'%i.mp4'%(videoNumber))
 cap.set(cv2.CAP_PROP_BUFFERSIZE, 3)
 
-	
 
 backSub = cv2.createBackgroundSubtractorKNN()
 
 #get the point of each square 
-with open('polygons4', 'rb') as f:
-    polygonsWithScore = pickle.load(f)
+with open('hahahaha', 'rb') as f:
+	polygonsWithScore = pickle.load(f)
 # print(polygonsWithScore)
 print("first cell",polygonsWithScore[0][2])
 print("second cell",polygonsWithScore[1][2])
@@ -55,19 +50,38 @@ frameCounter=0
 ratDetectionMethods=RatDetection()
 frameEdit=VideoProcessing()
 trajectoryClassifiction=TrajectoryClasification(FastDTWMethod())
+def detectRatMask(img):
+	imgBlur=cv2.GaussianBlur(img,(7,7),2)
+	kernel = np.ones((5, 5), np.uint8)    
+	fgMask = backSub.apply(imgBlur)
+	mask=cv2.morphologyEx(fgMask,cv2.MORPH_OPEN,kernel)
+	mask = cv2.medianBlur(mask, 9)
+	mask = cv2.dilate(mask, kernel, iterations=2)
+	return mask
+def ROI(frame):
+			# Y1  Y2   X1   X2
+	roi=frame[50: 550,330: 850]
+	return roi
+
+fourcc = cv2.VideoWriter_fourcc(*'MP4V')
+out = cv2.VideoWriter('howamendeh.mp4', fourcc, 30.0, (520,490))
 while(1):
 	frameCounter+=1
 	if frameCounter== cap.get(cv2.CAP_PROP_FRAME_COUNT):
 		break
 	ret,frame=cap.read()
-	frame_c=frame
+	# frame_c=frame
 	if ret:
-		frame=frameEdit.rescaleFrame(frame)
-		frame=frameEdit.ROI(frame)
-		frame_c=frame
-		ratDetectionMethods.sethsvValue(frame)
-		ratDetectionMethods.setframe(frame)
-		fgMask=ratDetectionMethods.detectRatMask()
+		# frame=frameEdit.rescaleFrame(frame)
+		# print(frame.shape)
+		# frame=ROI(frame)
+		# print(frame.shape)
+		# frame_c=frame
+		# ratDetectionMethods.sethsvValue(frame)
+		# ratDetectionMethods.setframe(frame)
+		# frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)  
+
+		fgMask=detectRatMask(frame)
 		cnts  = cv2.findContours(fgMask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)   
 		cnts = imutils.grab_contours(cnts)
 		poly=[]
@@ -80,13 +94,13 @@ while(1):
 					box = cv2.boxPoints(rect)
 					box = np.int0(box)
 					center=trajectoryClassifiction.determineTheCenter(frame,cnts)
-					# print(trajectoryClassifiction.getPoints())
-					for cr in pointsList:
+					# print()
+					for cr in trajectoryClassifiction.getPoints():
 						cv2.circle(frame, cr, 5, (0, 0, 255), -1)
 						
 					if(trajectoryClassifiction.numberOfPoints()==70):
 						Shape,conf=trajectoryClassifiction.trajectoryType()
-						pointsList=[]
+						
 						trajectoryClassifiction.restPoints()
 						if (Shape!=None):
 							trajectoryType.append(Shape)
@@ -129,19 +143,19 @@ while(1):
 		cv2.putText(frame, 'Number of entries %i'%(ratDetectionMethods.getCountNumberofEnter()),(50,400), cv2.FONT_HERSHEY_DUPLEX, 0.5,(0,0,255),2)
 		cv2.putText(frame, 'Time inside target quadrant %.2f sec'%((quarterFrame/60)),(50,420), cv2.FONT_HERSHEY_DUPLEX, 0.5,(0,0,255),2)
 		cv2.putText(frame, 'Time till reaching target quadrant  %.2f sec'%((latancyframe/60)),(50,440), cv2.FONT_HERSHEY_DUPLEX, 0.5,(0,0,255),2)
-	
 		#show image
 		cv2.imshow('frame',frame)
-		cv2.imshow('frame_c',frame_c)
-		cv2.imshow('mask',fgMask)
+		# cv2.imshow('frame_c',frame_c)
+		# cv2.imshow('mask',fgMask)
+		# cv2.imwrite('Frame.jpg', frame)
+		out.write(frame)
+
+		
 	else:
 		break
 	k = cv2.waitKey(1) & 0xFF
 	if k == 27:
-		
 		break
-
-
 
 print("count=============> ",quarterFrame)
 print(quarterFrame/60)
@@ -150,19 +164,11 @@ print(frameCounter/60)
 print("latancy =============> ",latancyframe)
 print(latancyframe/60)
 
+data=SaveDataToFile(trajectoryType,confidence,videoNumber)
+data.saveTrajactorys()
+data.saveData(quarterFrame,ratDetectionMethods.getCountNumberofEnter(),latancyframe)
 
-dict = {'trajectoryType': trajectoryType, 'confidence': confidence}
-df = pd.DataFrame(dict) 
-dictData = {'Mouse number': videoNumber, 'Time till reaching ladder (sec)': 0, 
-'Time spent inside target quadrant (sec)': '%.2f'%((quarterFrame/60)),'Number of entries': ratDetectionMethods.getCountNumberofEnter()
-,'Time till reaching target quadrant (sec)':'%.2f'%((latancyframe/60))}
-# saving the dataframe 
-df.to_csv('classifications_hsv%i.csv'%(videoNumber)) 
 print('programsec==>%i'%(programsec))
-field_names = ['Mouse number','Time till reaching ladder (sec)','Time spent inside target quadrant (sec)',
-               'Number of entries','Time till reaching target quadrant (sec)']
-with open('Morris_water_maze_my_data2 - HSV2.csv','a') as fd:
-	writer_object = DictWriter(fd, fieldnames=field_names)
-	writer_object.writerow(dictData)
 #destroys all window
+cap.release()
 cv2.destroyAllWindows()

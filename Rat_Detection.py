@@ -56,3 +56,4 @@ class RatDetection:
 		else:
 			self.prevFlag=1
 
+	
