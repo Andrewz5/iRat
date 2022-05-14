@@ -8,7 +8,8 @@ from Rat_Detection import RatDetection
 from TrajectoryClasification import TrajectoryClasification,TrajectoryClasificationStrategy,oneDollorRecognize,DTWMethod,FastDTWMethod
 from videoProcessing import VideoProcessing
 from SaveDataToFile import SaveDataToFile
-# import pyrebase
+import pyrebase
+
 
 firebaseConfig = {
     'apiKey': "AIzaSyB-1OSqlNCPIaPVnrZc9iFFvn9f7STxkFY",
@@ -20,14 +21,14 @@ firebaseConfig = {
     'appId': "1:150724454620:web:c608246cfce551910cac19"
   };
 
-# # FireBase Authentication
-# firebase=pyrebase.initialize_app(firebaseConfig)
-# auth=firebase.auth()
+# FireBase Authentication
+firebase=pyrebase.initialize_app(firebaseConfig)
+auth=firebase.auth()
 
-# # Firebase Database
-# db=firebase.database()
-# # Firebase Storage
-# storage=firebase.storage()
+# Firebase Database
+db=firebase.database()
+# Firebase Storage
+storage=firebase.storage()
 
 
 
@@ -154,14 +155,33 @@ def MorrisWaterMaze(video):
 
 
 def main():
-    # # Streamlit Start
-    # st.title("iRat")
-    # # Login/signUp
-    # loginOrSignUp=st.selectbox('Login/Sign Up',['Login','Sign Up'])
-
-    # email=st.text.input("please enter your email address")
-    # new_title = '<p style="font-size: 42px;">Welcome to my Object Detection App!</p>'
-    # # read_me_0 = st.markdown(new_title, unsafe_allow_html=True)
+    # Streamlit Start
+    st.title("iRat")
+    # Login/signUp
+    loginOrSignUp=st.selectbox('Login/Sign Up',['Login','Sign Up'])
+    userName=st.text_input("UserName",placeholder="please enter your UserName")
+    email=st.text_input("Email",placeholder="please enter your Email address")
+    password=st.text_input("Password",placeholder="please enter your Password")
+    
+    if loginOrSignUp=='Sign Up':
+        signUpButtton=st.button("SignUp")
+        if signUpButtton:
+            user=auth.create_user_with_email_and_password(email,password)
+            st.success("Thank you for creating new account")
+            user = auth.sign_in_with_email_and_password(email, password)
+            db.child(user['localId']).child("Handle").set(userName)
+            db.child(user['localId']).child("ID").set(user['localId'])
+            db.child(user['localId']).child("Email").set(email)
+            st.title('Welcome' + userName)
+            st.info('Login via login drop down selection')
+            # db.child(user['localId']).child("ID").set('localId')
+            # db.child(user['localId']).child("UserName").set(userName)
+            # 
+    else:
+        loginButtton=st.button("Login")
+    
+    new_title = '<p style="font-size: 42px;">Welcome to my Object Detection App!</p>'
+    # read_me_0 = st.markdown(new_title, unsafe_allow_html=True)
     st.sidebar.title("Select Activity")
     choice  = st.sidebar.selectbox("Menu",("Morris water Maze","Setting","About"))
     #["Show Instruction","Landmark identification","Show the #source code", "About"]
