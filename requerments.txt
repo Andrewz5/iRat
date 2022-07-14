@@ -1,5 +1,6 @@
 compress-pickle==2.1.0
 dollarpy==0.1.1
+moviepy==1.0.3
 dtaidistance==2.3.6
 dtw==1.4.0
 fastdtw==0.3.4
