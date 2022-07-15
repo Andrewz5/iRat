@@ -20,3 +20,4 @@ streamlit
 streamlit_embedcode
 streamlit_webrtc
 typing_extensions
+urllib3
